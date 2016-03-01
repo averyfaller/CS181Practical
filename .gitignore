@@ -64,3 +64,8 @@ target/
 *.csv
 
 .DS_Store
+
+*.xml
+
+2/malware_test/
+2/malware_train/
