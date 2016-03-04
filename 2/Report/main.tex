@@ -48,10 +48,10 @@
 \subsection{Introduction}
 For this exercise, we were given access to 3,086 log files, each of which contain system calls produced by malware executables. Given that we believed certain classes of malware would exhibit similar call patterns, these logs appeared to be good candidates on which to apply classification models. During the process of solving this problem, we made use of Support Vector Machines, Random Forest Classifiers, Logistic Regression, Tensor Flow, Naive Bayes Classifiers, K-Neighbors Classifiers, and Radius Neighbors Classifiers.\\
 
-We discovered that adding counts of system calls as well as adding frequency of various process arguments worked well, increasing our classification accuracy metric.
+We discovered that adding counts of system calls as well as adding frequency of various process arguments worked well, increasing our classification accuracy metric significantly from the baseline of 39\%.
 
 \subsection{Data Analysis}
-We began this problem by conducting exploratory data analysis on the log files. We started off by examining the distribution of the malware classes \textbf{(Figure \ref{fig:malware_distribution})}. We see that the most common class is "None" followed by "Swizzor" and "VB". Next, we looked at the number of calls made in the log file and looked at the means, standard deviations, maximums, and minimums for each of the 15 classes \textbf{(Figure \ref{fig:length_analysis})}. We did not notice any obvious patterns in the overall call count analysis except that the Lipler and Zbot classes had significantly higher means than the other classes.\\
+We began this problem by conducting exploratory data analysis on the log files. We started off by examining the distribution of the malware classes \textbf{(Figure \ref{fig:malware_distribution})}. We see that the most common class is "None" followed by "Swizzor" and "VB". Next, we looked at the number of calls made in the log file and looked at the means, standard deviations, maximums, and minimums for each of the 15 classes \textbf{(Figure \ref{fig:length_analysis})}. We did not notice any obvious patterns in the overall call count analysis except that the "Lipler" and "Zbot" had significantly higher means than the other classes.\\
 
 \begin{figure}[t]
 \centering
@@ -64,16 +64,16 @@ We began this problem by conducting exploratory data analysis on the log files. 
 \label{fig:length_analysis}
 \end{figure}
 
-Next, we examined the frequency of individual system calls made by specific malware classes. First, we identified 110 different classes of system calls that were shared amongst our test set of log files. We then partitioned our test logs into two groups: a randomly selected training set, which contained 2,468 samples (80\%) and a validation set, which contained 618 samples (20\%). We then used this list of shared system calls to generate frequency tables for the test set of the executables, and ran these frequency tables and classification vectors through numerous classification models, such as Support Vector Machines, Random Forest Classifiers, Logistic Regression, Naive Bayes Classifiers, K-Neighbors Classifiers, and Radius Neighbors Classifiers. We found that the Random Forest Classifier worked best on our validation set \textbf{(Figure \ref{fig:model_performance})}.\\
+Next, we examined the frequency of individual system calls made by specific malware classes. First, we identified 110 different classes of system calls that were shared amongst our test set of log files. We then partitioned our test logs into two groups: a randomly selected training set, which contained 2,468 samples (80\%) and used the remainder as a validation set, which contained 618 samples (20\%). We then used this list of shared system calls to generate frequency tables for the test set, and ran these frequency tables and classification vectors through numerous classification models, such as Support Vector Machines, Random Forest Classifiers, Logistic Regression, Naive Bayes Classifiers, K-Neighbors Classifiers, and Radius Neighbors Classifiers. Of all the models, we found that the Random Forest Classifier worked best on our validation set \textbf{(Figure \ref{fig:model_performance})}.\\
 
 Once we had established that Random Forest Classifiers had the best performance, we began adding features that we thought would increase the efficacy of our model. Features that we added include the process user name argument, the process start reason, and the process termination reason. Adding these three features increased our accuracy by 1.1\%.\\
 
-Next, we attempted to add bi-grams of calls (pairs of consecutive calls) with the idea being that the ordering of calls might reveal certain actions that a class of malware might use to achieve a malicious result. We programmatically generated bi-grams, added them to the feature set, and ran the features through our Random Tree Classifier. Surprisingly, bi-grams did not have a positive effect on our classification accuracy.\\
+Next, we attempted to add bi-grams of calls (pairs of consecutive calls) with the idea being that the ordering of calls might reveal certain actions that a class of malware might use to achieve a malicious result. We programmatically generated bi-grams, added them to the feature set, and ran the features through our Random Forest Classifier. Surprisingly, bi-grams did not have a positive effect on our classification accuracy.\\
 
 \begin{figure}[t]
 \centering
 \includegraphics[width=12cm]{model_performance}
-\caption{Comparison of model performance}
+\caption{Comparison of model performance on cross-validation data}
 \label{fig:model_performance}
 \end{figure}
 
@@ -82,26 +82,26 @@ Next, we attempted to add bi-grams of calls (pairs of consecutive calls) with th
 \begin{figure}[t]
 \centering
 \includegraphics[width=12cm]{result_process}
-\caption{Results in order of feature additions}
+\caption{Cross-validation results in order of feature additions. Score variance is discussed in the Results section}
 \label{fig:result_process}
 \end{figure}
 
 \begin{figure}[t]
 \centering
 \includegraphics[width=12cm]{misclassified_classes}
-\caption{Distribution of misclassified classes using the Random Forest Classifier}
+\caption{Distribution of misclassified classes using the Random Forest Classifier. Red signifies the misclassified data, while blue signifies the correctly classified data}
 \label{fig:misclassified_classes}
 \end{figure}
 
-By creating a feature for each call that the executables made, we were able to establish a significant baseline with which to compare our models. We used this feature set to determine which model we would use. We compared a wide range of models including K-Nearest Classifier, Logistic Regression and Random Forests.  Out of all the models that we tried, Random Forests performed the best.  We split our data into training and validation sets and tuned the Random Forest parameters on the validation set.\\
+By creating a feature for each call that the executables made, we were able to establish a significant baseline with which to compare our models. We used this feature set to determine which model we would use. Out of all the models that we tried, Random Forest performed the best.  We split our data into training and validation sets and tuned the Random Forest parameters on the validation set.\\
 
-After tuning our Random Forest, we attempted to improve our model by creating more features from the data.  To do this, we inspected the .xml files looking for potential features in the xml trees.  Some of the features we extracted from the xml files included the 'username', 'startreason' and 'terminationreason' of the process.  These features hurt our accuracy when we added them to the features for the calls. \\
+After tuning our Random Forest, we attempted to improve our model by creating more features from the data.  To do this, we inspected the xml files looking for potential features in the xml trees.  Some of the features we extracted from the xml files included the 'username', 'startreason' and 'terminationreason' of the process. These features hurt our accuracy when we added them to the features for the calls. \\
 
-We thought further about what could be used to distinguish between different classes of malware.  We plotted the amount of correctly classified and misclassified malware type \textbf{(Figure \ref{fig:misclassified_classes})}.  While our model was particularly adept at predicting Swizzor and Magania malware, it fared quite poorly with Virut, classifying all but one log file incorrectly in our validation test set.\\
+We thought further about what could be used to distinguish between different classes of malware.  We plotted the amount of correctly classified and misclassified data to help us understand if our model had better performance for specific classes of malware \textbf{(Figure \ref{fig:misclassified_classes})}.  While our model was particularly adept at predicting "Swizzor" and "Magania" malware, it fared quite poorly with "Virut", classifying all but one log file incorrectly in our validation test set.\\
 
-Looking into the Virut xml files, we began to think that the order of the first few calls an executable made could be a useful indicator of malware type. Adding the first and second calls of each process's threads improved the performance of our model. When we added the features from above back in, namely 'username', 'startreason' and 'terminationreason', the model further improved overall, but we were still unable to correctly classify Virut. \\
+Looking into the Virut xml files, we began to think that the order of the first few calls an executable made could be a useful indicator of malware type. Adding the first and second calls of each process's threads improved the performance of our model. When we added the features from above back in, namely 'username', 'startreason' and 'terminationreason', the model further improved overall, but we were still unable to correctly classify "Virut". \\
 
-We decided to try to capture all orderings of calls in the log files as an extension of the first and second calls, which had worked well.  Adding bigrams greatly increased the running time of our program as there were an additional 12,100 features in our matrix, but did not increase our accuracy of classification.  In fact, the accuracy dropped as a result of these features, and so we removed them.
+We then decided to try to capture all orderings of calls in the log files as an extension of the first and second calls, which had worked well.  Adding bi-grams greatly increased the running time of our program as there were an additional 12,100 features in our matrix, but did not increase our accuracy of classification.  In fact, the accuracy dropped as a result of these features, and so we removed them.
 
 \begin{figure}[t]
 \centering
@@ -115,13 +115,13 @@ We decided to try to capture all orderings of calls in the log files as an exten
 
 As we have described above, we began our work by comparing a number of classifiers.  Before tuning this classifiers, Random Forests emerged as the front runner, followed closely by K-Nearest Classifier.  We believe that Random Forests prevailed in this instance because it is a bootstrap method that avoids over-fitting even with small data sets.\\
 
-Generally, a good way to try to improve the accuracy of a classifier is to add more features.  In this practical, adding features tended to follow this formula: we added new features to our model and saw a bump in accuracy.  However, there was one notable instance where this pattern broke down, namely when we added bigrams.\\
+Generally, a good way to try to improve the accuracy of a classifier is to add more features. However, there were a few instances where this pattern broke down \textbf{(see Figure \ref{fig:result_process})}. One thought we had was that the cross-validation sample was simply too small to yield accurate results during classification scoring. Another thought was that we were severely overfitting to the training data, as we saw a significantly higher classification accuracy on our training data set than we did on our cross-validation data and test data.\\
 
-To introduce bigrams into our feature set, we counted the number of times certain call pairs appeared in a log file. The intuition here was that we could identify certain types of malware by the frequency with which call pairs were present. We suspect that this intuition was misguided, however, because of the low correlation between the sequencing of the calls and the type of malware that affects it. We also surmised that creating a feature for every single bigram, regardless of the rate of occurrence of that bigram, introduced more noise and complexity into the model. \\
+Another method we tried was introducing bi-grams into our feature set. In order to do so, we counted the number of times certain call pairs appeared in a log file. The intuition here was that we could identify certain types of malware by the frequency with which call pairs were present. We suspect that this intuition was misguided, however, because of the low correlation between the sequencing of the calls and the type of malware that affects it. We also surmised that creating a feature for every single bi-gram, regardless of the rate of occurrence of that bi-gram, introduced more noise and complexity into the model. \\
 
-We also noticed that we were consistently mis-classifying the same malware classes, such as Virut and Agent, across all of the tested models. Our next steps for this practical could include more extensively honing in on the misclassified log files and pinpointing standout features that differ within these classes from the log files of other classes of malware. \\
+We also noticed that we were consistently mis-classifying the same malware classes, such as "Virut" and "Agent", across all of the tested models. Our next steps for this practical could include more extensively honing in on the misclassified log files and pinpointing standout features that differ within these classes from the log files of other classes of malware.\\
 
-To account for the large discrepancy between validation accuracy and test accuracy on the Kaggle board, it is important to note the size of our data set. Whereas in the previous practical we had millions of rows, each containing a short string, here we only have a few thousand rows, where each row comprises an entire log file. Since we are training on 2,468 rows and validating on 618 rows, there is a large variance in the efficacy of each model, and we are likely over-fitting. With more time, we would have performed k-fold cross validation to mitigate these effects. We could also have tried stratified sampling to generate the validation set with proportionally correct malware classes.\\
+To account for the large discrepancy between validation accuracy and test accuracy on the Kaggle board, it is important to note the size of our data set. Whereas in the previous practical we had millions of rows, each containing a short string, here we only have a few thousand rows, where each row comprises an entire log file. Since we are training on 2,468 rows and validating on 618 rows, there is a large variance in the efficacy of each model, and we are likely over-fitting. This is the most significant difference between the two practicals that we have had thus far. With more time, we would have performed k-fold cross validation to mitigate these effects. We could also have tried stratified sampling to generate the validation set with proportionally correct malware classes.\\
 
 \section {Code}
 \begin{lstlisting}
@@ -374,7 +374,6 @@ def main():
 
 if __name__ == "__main__":
     main()
-    
 \end{lstlisting}
 
 \end{document}
