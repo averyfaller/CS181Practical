@@ -62,6 +62,7 @@ target/
 .ipynb_checkpoints
 
 *.csv
+*.gz
 
 .DS_Store
 
