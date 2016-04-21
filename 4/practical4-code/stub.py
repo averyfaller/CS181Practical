@@ -1,4 +1,4 @@
-# Imports.
+# Imports
 import numpy as np
 import numpy.random as npr
 from sklearn.ensemble import RandomForestRegressor
@@ -43,6 +43,7 @@ class Learner(object):
         self.last_reward = 0
         self.train = False
 
+        # TODO: conver the epoch_X to a matrix so we can run this line of code:
         #self.epoch_X[:,-2] = self.epoch_gravity
         
         self.X.extend(self.epoch_X)
@@ -60,20 +61,6 @@ class Learner(object):
             score = self.rf.score(self.X, self.y)
             self.fitted = True
             print "Refitting for new epoch, score: %f" % score
-        
-#    def get_Q_score(self, state, action):
-#        if state == None or action == None:
-#            return 0
-        
-#        if str((state, action)) in self.Q:
-#            a_q = self.Q[self.Q_to_string(state, action)]
-#            if a_q is not None:
-#                return a_q
-
-        # The default score to return
-#        return 0
-
-
 
     def state_action_to_array(self, state, action, prev_state, set_epoch_graivty=False):
         if state is not None and prev_state is not None:
@@ -106,7 +93,7 @@ class Learner(object):
                    
                    self.epoch_gravity,
                    action]
-            #print arr
+            
             return arr
         return None
         
@@ -118,7 +105,6 @@ class Learner(object):
         return self.rf.predict(np.array(self.state_action_to_array(state, action, prev_state)).reshape(1, -1))
     
     def set_Q_score(self, state, action, q, prev_state):
-        #self.Q[self.Q_to_string(state, action)] = q
         arr = self.state_action_to_array(state, action, prev_state, set_epoch_graivty=True)
         if arr is not None:
             self.epoch_X.append(arr)
