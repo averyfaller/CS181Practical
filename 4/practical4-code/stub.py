@@ -20,7 +20,7 @@ class Learner(object):
         
         # This is the learning rate applied to determine to what extent
         # the new information will override the previous information
-        self.learning_rate = .95
+        self.learning_rate = .9
         
         # This is the discount factor which we will use to determine the importance of 
         # future rewards
@@ -30,7 +30,9 @@ class Learner(object):
         self.epoch_X = []
         self.X = []
         self.y = []
-        self.rf = RandomForestRegressor(n_estimators=5)
+        self.rf = RandomForestRegressor(n_estimators=10)
+        #self.rf = LinearRegression()
+        
         self.fitted = False
         self.epoch_gravity = 1
 
@@ -71,6 +73,8 @@ class Learner(object):
         # The default score to return
 #        return 0
 
+
+
     def state_action_to_array(self, state, action, prev_state, set_epoch_graivty=False):
         if state is not None and prev_state is not None:
             #print state['tree']['top'] - state['tree']['bot']
@@ -82,15 +86,24 @@ class Learner(object):
             # ((state['tree']['top'] - 100) - (state['monkey']['top'] - 56))^2,
             #print state['monkey']['top'] - state['monkey']['bot']
             # prev_state['monkey']['vel'] - state['monkey']['vel'], 
+            #                   prev_state['tree']['top'],
             
+            #                    ((state['tree']['top'] - 100) - (state['monkey']['top'] - 28))**2,
+            
+            #                    state['monkey']['bot'],
+            #        state['tree']['bot'], 
             if action == 0:
                 self.epoch_gravity = prev_state['monkey']['vel'] - state['monkey']['vel']
             
             arr = [state['monkey']['top'], 
                    state['tree']['top'], 
-                   ((state['tree']['top'] - 100) - (state['monkey']['top'] - 28))**2,
                    state['tree']['dist'], 
                    state['monkey']['vel'],
+                   
+                   prev_state['monkey']['top'],
+                   prev_state['tree']['dist'],
+                   prev_state['monkey']['vel'],
+                   
                    self.epoch_gravity,
                    action]
             #print arr
@@ -103,8 +116,6 @@ class Learner(object):
             return 0
         
         return self.rf.predict(np.array(self.state_action_to_array(state, action, prev_state)).reshape(1, -1))
-        
-   
     
     def set_Q_score(self, state, action, q, prev_state):
         #self.Q[self.Q_to_string(state, action)] = q
@@ -145,9 +156,6 @@ class Learner(object):
         
         if isinstance(best_Q, list):
             best_Q = best_Q[0]
-        print best_Q
-        
-        print new_action
         
         # Update the Q score for the last state and action
         self.set_Q_score(self.last_state, self.last_action, best_Q, self.penultimate_state)
@@ -203,7 +211,7 @@ if __name__ == '__main__':
     hist = [0]
 
     # Run games. 
-    run_games(agent, hist, 300, 10, 5)
+    run_games(agent, hist, 100, 5, 10)
 
     #print "Num states: %d" % len(agent.Q)
     
@@ -212,3 +220,4 @@ if __name__ == '__main__':
     
     # Print max score
     print "Max score was: %f" % max(hist)
+    print "Total Score was %d" % np.sum(hist)
