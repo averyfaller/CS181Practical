@@ -26,27 +26,27 @@ class Learner(object):
         
         # This is the learning rate applied to determine to what extent
         # the new information will override the previous information
-        self.learning_rate = .9
+        self.learning_rate = .1
         
         # This is the discount factor which we will use to determine the importance of 
         # future rewards
-        self.discount_factor = .1
+        self.discount_factor = .9
 
         # The matrix where we will store Q-scores for (state, action) tuples
         self.epoch_X = np.zeros(self.num_vars)
         self.X = np.zeros(self.num_vars)
         self.y = np.zeros(1)
-        #self.rf = RandomForestRegressor(n_estimators=30)
+        self.rf = RandomForestRegressor(n_estimators=50)
         #self.rf = LinearRegression()
         #self.rf = GradientBoostingRegressor(loss='quantile')
-        self.rf = Pipeline([
-            ('min/max scaler', MinMaxScaler(feature_range=(-1.0, 1.0))),
-            ('neural network', Regressor(layers=[
-                Layer("Sigmoid", units=10),
-                Layer("Sigmoid", units=10),           
-                Layer("Linear")],
-            learning_rate=0.90,
-            n_iter=20))])
+        #self.rf = Pipeline([
+        #    ('min/max scaler', MinMaxScaler(feature_range=(-1.0, 1.0))),
+        #    ('neural network', Regressor(layers=[
+        #        Layer("Sigmoid", units=50),
+        #        Layer("Sigmoid", units=50),           
+        #        Layer("Linear")],
+        #    learning_rate=0.02,
+        #    n_iter=20))])
 
         self.epsilon = 1.0
         
@@ -69,7 +69,6 @@ class Learner(object):
         self.epoch_X[:,-2] = stats.mode(self.epoch_gravity)[0][0]
 
         self.X = np.vstack((self.X, self.epoch_X))
-        print stats.mode(self.epoch_gravity)[0][0]
         print '-------------------'
 
         self.epoch_X = np.zeros(self.num_vars)
@@ -122,8 +121,8 @@ class Learner(object):
             
             #                                       
             
-            boxes = 30
-            vel_boxing = 3
+            boxes = 3
+            vel_boxing = 1
             
             #arr = np.array([
             #       state['monkey']['top'] // boxes, 
@@ -137,15 +136,14 @@ class Learner(object):
             #       action])
             
             arr = np.array([
-                   state['monkey']['top'] - 100, 
-                    state['tree']['top'] - 28,
-                   state['tree']['dist'], 
-                   state['monkey']['vel'],
+                   (state['monkey']['top'] - 100) // boxes, 
+                   (state['tree']['top'] - 28) // boxes,
+                   state['tree']['dist'] // boxes, 
+                   state['monkey']['vel'] // vel_boxing,
 
                    stats.mode(self.epoch_gravity)[0][0],
                    action])
             
-            #print arr
             return arr
         return None
 
@@ -159,7 +157,7 @@ class Learner(object):
         arr = self.state_action_to_array(state, action, prev_state, set_epoch_graivty=True)
         if arr is not None:
             self.epoch_X = np.vstack((self.epoch_X, arr))
-            self.y = np.vstack((self.y, q))
+            self.y = np.append(self.y, q)
 
     def action_callback(self, state):
         '''
@@ -189,7 +187,6 @@ class Learner(object):
         else:
             new_action = best_action
         
-        print best_action
         best_Q = action_Qs[new_action]
         
         if isinstance(best_Q, list):
