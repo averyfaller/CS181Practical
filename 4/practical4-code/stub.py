@@ -8,6 +8,9 @@ from sklearn.ensemble import GradientBoostingRegressor
 from SwingyMonkey import SwingyMonkey
 from scipy import stats
 
+from sknn.mlp import Regressor, Layer
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import MinMaxScaler
 
 class Learner(object):
     '''
@@ -19,7 +22,7 @@ class Learner(object):
         self.penultimate_state = None
         self.last_action = None
         self.last_reward = 0
-        self.num_vars = 7
+        self.num_vars = 6
         
         # This is the learning rate applied to determine to what extent
         # the new information will override the previous information
@@ -27,16 +30,24 @@ class Learner(object):
         
         # This is the discount factor which we will use to determine the importance of 
         # future rewards
-        self.discount_factor = .5
+        self.discount_factor = .1
 
         # The matrix where we will store Q-scores for (state, action) tuples
         self.epoch_X = np.zeros(self.num_vars)
         self.X = np.zeros(self.num_vars)
         self.y = np.zeros(1)
-        self.rf = RandomForestRegressor(n_estimators=30)
+        #self.rf = RandomForestRegressor(n_estimators=30)
         #self.rf = LinearRegression()
         #self.rf = GradientBoostingRegressor(loss='quantile')
-        
+        self.rf = Pipeline([
+            ('min/max scaler', MinMaxScaler(feature_range=(-1.0, 1.0))),
+            ('neural network', Regressor(layers=[
+                Layer("Sigmoid", units=10),
+                Layer("Sigmoid", units=10),           
+                Layer("Linear")],
+            learning_rate=0.90,
+            n_iter=20))])
+
         self.epsilon = 1.0
         
         self.fitted = False
@@ -66,7 +77,7 @@ class Learner(object):
         self.epoch_gravity = np.array(1)
         
         # Refit at the start of each epoch
-        if len(self.X) > 0:
+        if len(self.X) > 0: # and self.last_reward < 5:
             #print self.X[-1], self.y[-1]
             self.rf.fit(self.X, self.y)
             score = self.rf.score(self.X, self.y)
@@ -114,13 +125,22 @@ class Learner(object):
             boxes = 30
             vel_boxing = 3
             
-            arr = np.array([
-                   state['monkey']['top'] // boxes, 
-                    state['monkey']['bot'] // boxes,
-                    ((state['tree']['top'] - 100) - (state['monkey']['top'] - 28) )//boxes,
+            #arr = np.array([
+            #       state['monkey']['top'] // boxes, 
+            #        state['monkey']['bot'] // boxes,
+            #        ((state['tree']['top'] - 100) - (state['monkey']['top'] - 28) )//boxes,
 
-                   state['tree']['dist'] // boxes, 
-                   state['monkey']['vel'] // vel_boxing,
+            #       state['tree']['dist'] // boxes, 
+            #       state['monkey']['vel'] // vel_boxing,
+
+            #       stats.mode(self.epoch_gravity)[0][0],
+            #       action])
+            
+            arr = np.array([
+                   state['monkey']['top'] - 100, 
+                    state['tree']['top'] - 28,
+                   state['tree']['dist'], 
+                   state['monkey']['vel'],
 
                    stats.mode(self.epoch_gravity)[0][0],
                    action])
@@ -169,6 +189,7 @@ class Learner(object):
         else:
             new_action = best_action
         
+        print best_action
         best_Q = action_Qs[new_action]
         
         if isinstance(best_Q, list):
@@ -227,7 +248,7 @@ if __name__ == '__main__':
     hist = [0]
 
     # Run games. 
-    run_games(agent, hist, 100, 1, 10)
+    run_games(agent, hist, 100, 1, 1)
 
     #print "Num states: %d" % len(agent.Q)
     
