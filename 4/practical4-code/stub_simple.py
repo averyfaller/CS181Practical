@@ -138,8 +138,8 @@ class Learner(object):
         if jump_Q > swing_Q:
             best_action = 1
 
-        if self.train or jump_Q == swing_Q: # or npr.rand() < self.epsilon:
-            new_action = (npr.rand() < 0.1) * 1
+        if jump_Q > swing_Q:
+            new_action = 1
         else:
             new_action = best_action
 
