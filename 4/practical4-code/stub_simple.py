@@ -1,17 +1,11 @@
 # Imports
 import numpy as np
 import numpy.random as npr
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.linear_model import LinearRegression
-from sklearn.ensemble import GradientBoostingRegressor
 import matplotlib.pyplot as plt
+import operator
 
 from SwingyMonkey import SwingyMonkey
 from scipy import stats
-
-from sknn.mlp import Regressor, Layer
-from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import MinMaxScaler
 
 # get histograms - NC
 # try different bins - EW
@@ -26,12 +20,11 @@ class Learner(object):
 
     def __init__(self):
         self.last_state  = None
-        self.penultimate_state = None
         self.last_action = None
         self.last_reward = 0
-        self.num_vars = 6
         self.gravity = 0
 
+        # For histogram plots so we can create better buckets
         self.vertical_hist = []
         self.horizontal_hist = []
 
@@ -42,64 +35,52 @@ class Learner(object):
         # This is the discount factor which we will use to determine the importance of
         # future rewards
         self.discount_factor = .6
-
-        # The matrix where we will store Q-scores for (state, action) tuples
-        self.X = np.zeros(self.num_vars)
-        self.y = np.zeros(1)
-
         self.q_scores = {}
 
-        self.epsilon = 1.0
-
-        self.epoch_gravity = np.array(1)
+        # self.vertical_bins = [-400, -200, -150, -100, -50, -25, 0, 25, 35, 45, 55, 65, 75, 85, 95, 100, 110, 120, 130, 140, 150, 160, 170, 180, 190, 200, 225, 250, 300, 400]
+        self.vertical_bins = np.arange(-400, 400, 25)
+        self.horizontal_bins = np.arange(-200, 600, 100)
 
     def reset(self):
         self.last_state  = None
-        self.penultimate_state = None
         self.last_action = None
         self.last_reward = 0
-        self.train = False
         self.gravity = 0
-
-        self.epsilon = self.epsilon * .5
 
         print '-------------------'
 
-        self.epoch_gravity = np.array(1)
 
     def set_gravity(self, prev_state, next_state):
         self.gravity = prev_state['monkey']['vel'] - next_state['monkey']['vel']
 
+    def should_set_gravity(self):
+        return self.gravity == 0
+
     def state_action_to_array(self, state, action):
-        if state is not None:
-            vertical_dist = state['monkey']['bot'] - state['tree']['bot']
-            horizontal_dist = state['tree']['dist']
+        vertical_dist = state['monkey']['bot'] - state['tree']['bot']
+        horizontal_dist = state['tree']['dist']
 
-            self.vertical_hist.append(vertical_dist)
-            self.horizontal_hist.append(horizontal_dist)
+        self.vertical_hist.append(vertical_dist)
+        self.horizontal_hist.append(horizontal_dist)
 
-            # vertical_bins = [-400, -200, -150, -100, -50, -25, 0, 25, 35, 45, 55, 65, 75, 85, 95, 100, 110, 120, 130, 140, 150, 160, 170, 180, 190, 200, 225, 250, 300, 400]
-            vertical_bins = np.arange(-400, 400, 25)
-            horizontal_bins = np.arange(-200, 600, 100)
+        vertical_bin = np.digitize(vertical_dist, self.vertical_bins)
+        horizontal_bin = np.digitize(horizontal_dist, self.horizontal_bins)
 
-            vertical_bin = np.digitize(vertical_dist, vertical_bins)
-            horizontal_bin = np.digitize(horizontal_dist, horizontal_bins)
+        arr = np.array([
+              vertical_bin,
+              horizontal_bin,
+              self.gravity,
+              action])
 
-            arr = np.array([
-                  vertical_bin,
-                  horizontal_bin,
-                  self.gravity,
-                  action])
+        return arr
 
-            return arr
-        return None
+    def get_key_from_state_action(self, state, action):
+        arr = self.state_action_to_array(state, action)
+        return "_".join(map(str, arr))
+
 
     def get_Q_score(self, state, action):
-        if state is None or action is None:
-            return -1
-
-        arr = self.state_action_to_array(state, action)
-        key = "_".join(map(str, arr))
+        key = self.get_key_from_state_action(state, action)
 
         if self.q_scores.has_key(key):
             return self.q_scores[key]
@@ -107,53 +88,37 @@ class Learner(object):
             return 0
 
     def set_Q_score(self, state, action, q):
-        arr = self.state_action_to_array(state, action)
-        if arr is not None:
-            key = "_".join(map(str, arr))
-            self.q_scores[key] = q
+        key = self.get_key_from_state_action(state, action)
+        self.q_scores[key] = q
 
     def action_callback(self, state):
         '''
         Implement this function to learn things and take actions.
         Return 0 if you don't want to jump and 1 if you do.
         '''
-        # You might do some learning here based on the current state and the last state.
 
-        # You'll need to select and action and return it.
-        # Return 0 to swing and 1 to jump.
+        if state is None or self.last_action is None:
+            self.last_state  = state
+            new_action = 0
+        else:
+            if self.should_set_gravity():
+                new_action = 0
+                if self.last_action == 0 and new_action == 0:
+                    self.set_gravity(self.last_state, state)
 
-        prev_Q = self.get_Q_score(self.last_state, self.last_action)
+            prev_Q = self.get_Q_score(self.last_state, self.last_action)
+            swing_Q = prev_Q + self.learning_rate * (self.last_reward + self.discount_factor * self.get_Q_score(state, 0) - prev_Q)
+            jump_Q = prev_Q + self.learning_rate * (self.last_reward + self.discount_factor * self.get_Q_score(state, 1) - prev_Q)
 
-        swing_Q = prev_Q + self.learning_rate * (self.last_reward + self.discount_factor * self.get_Q_score(state, 0) - prev_Q)
+            # set new_action to 0 if swing_Q > jump_Q, save best_Q
+            new_action, best_Q = max(enumerate([swing_Q, jump_Q]), key=operator.itemgetter(1))
 
-        jump_Q = prev_Q + self.learning_rate * (self.last_reward + self.discount_factor * self.get_Q_score(state, 1) - prev_Q)
-
-        # print "SWING %f, JUMP %f" % (swing_Q, jump_Q)
+            # Update the Q score for the last state and action
+            self.set_Q_score(self.last_state, self.last_action, best_Q)
 
         print state
 
-        # Pick the better Q score from the possible actions at s_{t+1}
-        action_Qs = [swing_Q, jump_Q]
-        best_action = 0
-        if jump_Q > swing_Q:
-            best_action = 1
-
-        if jump_Q > swing_Q:
-            new_action = 1
-        else:
-            new_action = best_action
-
-        best_Q = action_Qs[new_action]
-
-        if self.gravity == 0:
-            new_action = 0
-            if self.last_action == 0 and new_action == 0:
-                self.set_gravity(self.last_state, state)
-
-        # Update the Q score for the last state and action
-        self.set_Q_score(self.last_state, self.last_action, best_Q)
-
-        self.penultimate_state = self.last_state
+        # Update last state and last action for next iteration
         self.last_state  = state
         self.last_action = new_action
 
