@@ -170,8 +170,6 @@ if __name__ == '__main__':
     # Run games.
     run_games(agent, hist, 100, 1, 1)
 
-    #print "Num states: %d" % len(agent.Q)
-
     # Save history.
     np.save('hist',np.array(hist))
 
