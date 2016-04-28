@@ -42,20 +42,27 @@ class Learner(object):
         ##############################
         ### CHOOSE REGRESSION TYPE ###
         ##############################
-        #self.rf = RandomForestRegressor(n_estimators=20)
-        #self.rf = LinearRegression()
-        #self.rf = GradientBoostingRegressor(loss='quantile')
-        self.rf = Pipeline([
-            ('min/max scaler', MinMaxScaler(feature_range=(-1.0, 1.0))),
-            ('neural network', Regressor(layers=[
-                Layer("Sigmoid", units=10),
-                Layer("Sigmoid", units=10),           
-                Layer("Linear")],
-            learning_rate=0.02,
-            n_iter=20))])
-
-        self.epsilon = 1.0
+        # Random Forest Regressor
+        self.rf = RandomForestRegressor(n_estimators=50)
         
+        # Linear Regression
+        #self.rf = LinearRegression()
+        
+        # Gradient Boosting Regressor
+        #self.rf = GradientBoostingRegressor(loss='quantile')
+        
+        # Neural Network with Scaling
+        #self.rf = Pipeline([
+        #    ('min/max scaler', MinMaxScaler(feature_range=(-1.0, 1.0))),
+        #    ('neural network', Regressor(layers=[
+        #        Layer("Sigmoid", units=10),
+        #        Layer("Sigmoid", units=10),           
+        #        Layer("Linear")],
+        #    learning_rate=0.02,
+        #    n_iter=20))])
+
+        
+        self.epsilon = 1.0
         self.fitted = False
 
         self.vertical_bins = np.arange(-400, 400, 25)
@@ -65,8 +72,6 @@ class Learner(object):
         self.last_state  = None
         self.last_action = None
         self.last_reward = 0
-
-        self.train = False
         
         self.epsilon = self.epsilon * .9
 
@@ -76,7 +81,7 @@ class Learner(object):
         self.gravity = 0
 
         self.X = np.vstack((self.X, self.epoch_X))
-        print '-------------------'
+        #print '-------------------'
 
         self.epoch_X = np.zeros(self.num_vars)
         
@@ -92,14 +97,8 @@ class Learner(object):
             vertical_dist = state['monkey']['bot'] - state['tree']['bot']
             horizontal_dist = state['tree']['dist']
 
-            #self.vertical_hist.append(vertical_dist)
-            #self.horizontal_hist.append(horizontal_dist)
-
             vertical_bin = np.digitize(vertical_dist, self.vertical_bins)
             horizontal_bin = np.digitize(horizontal_dist, self.horizontal_bins)
-            
-            #vertical_bin = vertical_dist
-            #horizontal_bin = horizontal_dist
             
             arr = np.array([
                   vertical_bin,
@@ -147,7 +146,7 @@ class Learner(object):
             swing_Q = prev_Q + self.learning_rate * (self.last_reward + self.discount_factor * self.get_Q_score(state, 0) - prev_Q)
             jump_Q = prev_Q + self.learning_rate * (self.last_reward + self.discount_factor * self.get_Q_score(state, 1) - prev_Q)
 
-            print "SWING %f, JUMP %f" % (swing_Q, jump_Q)
+            #print "SWING %f, JUMP %f" % (swing_Q, jump_Q)
             # set new_action to 0 if swing_Q > jump_Q, save best_Q
             new_action, best_Q = max(enumerate([swing_Q, jump_Q]), key=operator.itemgetter(1))
             
@@ -175,10 +174,6 @@ def run_games(learner, hist, iters = 100, t_len = 100, r_iters = 10):
     
     for ii in range(iters):
         # Make a new monkey object.
-        if ii < r_iters:
-            learner.train = True
-            print "Running a training epoch"
-        
         swing = SwingyMonkey(sound=False,                  # Don't play sounds.
                              text="Epoch %d, Max Score %d" % (ii, max(hist)) ,       # Display the epoch on screen.
                              tick_length = t_len,          # Make game ticks super fast.
@@ -206,7 +201,7 @@ if __name__ == '__main__':
     hist = [0]
 
     # Run games. 
-    run_games(agent, hist, 100, 1, 1)
+    run_games(agent, hist, 100, 1)
     
     # Save history. 
     np.save('hist',np.array(hist))

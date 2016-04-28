@@ -47,7 +47,7 @@ class Learner(object):
         self.last_reward = 0
         self.gravity = 0
 
-        print '-------------------'
+        #print '-------------------'
 
 
     def set_gravity(self, prev_state, next_state):
@@ -116,7 +116,7 @@ class Learner(object):
             # Update the Q score for the last state and action
             self.set_Q_score(self.last_state, self.last_action, best_Q)
 
-        print state
+        #print state
 
         # Update last state and last action for next iteration
         self.last_state  = state
@@ -128,7 +128,7 @@ class Learner(object):
         '''This gets called so you can see what reward you get.'''
         self.last_reward = reward
 
-def run_games(learner, hist, iters = 1000, t_len = 100, r_iters = 10):
+def run_games(learner, hist, iters = 1000, t_len = 100):
     '''
     Driver function to simulate learning by having the agent play a sequence of games.
     '''
@@ -136,10 +136,6 @@ def run_games(learner, hist, iters = 1000, t_len = 100, r_iters = 10):
 
     for ii in range(iters):
         # Make a new monkey object.
-        if ii < r_iters:
-            learner.train = True
-            print "Running a training epoch"
-
         swing = SwingyMonkey(sound=False,                  # Don't play sounds.
                              text="Epoch %d, Max Score %d" % (ii, max(hist)) ,       # Display the epoch on screen.
                              tick_length = t_len,          # Make game ticks super fast.
@@ -168,7 +164,7 @@ if __name__ == '__main__':
     hist = [0]
 
     # Run games.
-    run_games(agent, hist, 100, 1, 1)
+    run_games(agent, hist, 100, 1)
 
     # Save history.
     np.save('hist',np.array(hist))
