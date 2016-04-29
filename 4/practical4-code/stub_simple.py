@@ -47,9 +47,12 @@ class Learner(object):
         self.last_reward = 0
         self.gravity = 0
 
+<<<<<<< HEAD
         #print '-------------------'
 
 
+=======
+>>>>>>> Making further refactors.
     def set_gravity(self, prev_state, next_state):
         self.gravity = prev_state['monkey']['vel'] - next_state['monkey']['vel']
 
